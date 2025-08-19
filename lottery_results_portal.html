@@ -1,769 +1,549 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Beast Reader — Resultados de Loterías</title>
-<style>
-  :root{
-    /* DARK THEME — deep green */
-    --bg:#0f2018;              /* background */
-    --card:#142a22;            /* surfaces */
-    --text:#eaf7f1;            /* primary text */
-    --muted:#a5c1b6;           /* secondary text */
-    --accent1:#00e6a1;         /* gradient 1 */
-    --accent2:#24b28a;         /* gradient 2 */
-    --accent3:#2fe6ff;         /* extra accent (cyan) */
-    --danger:#ff5c7a;
-    --ok:#19dd9a;
-    --tile:160px;
-    --ring:0 0 10px rgba(0,230,161,.22), 0 0 28px rgba(47,230,255,.18);
-    --pill-bg: rgba(255,255,255,.08);
-    --pill-br: rgba(255,255,255,.14);
-    --shadow-card: 0 10px 30px rgba(0,0,0,.25);
-  }
-  [data-theme="light"]{
-    /* LIGHT THEME — warm beige background (darker) + cream tiles */
-    --bg:#e9dece;              /* darker than tiles */
-    --card:#fff7eb;            /* used for tiles & admin cards */
-    --text:#2a2a24;
-    --muted:#6b6458;
-    --accent1:#ffa94d;
-    --accent2:#ff6b6b;
-    --accent3:#36cfc9;
-    --danger:#d21f3c;
-    --ok:#0a8f64;
-    --pill-bg: rgba(0,0,0,.05);
-    --pill-br: rgba(0,0,0,.10);
-    --ring:0 0 10px rgba(255,169,77,.18), 0 0 28px rgba(255,107,107,.15);
-    --shadow-card: 0 10px 24px rgba(50,30,10,.15);
-  }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beast Reader — Ultimate</title>
 
-  body{
-    margin:0;
-    background:
-      radial-gradient(1200px 1200px at 10% -10%, rgba(0,230,161,.10), transparent 60%),
-      radial-gradient(900px 900px at 110% 10%, rgba(47,230,255,.12), transparent 60%),
-      var(--bg);
-    color:var(--text);
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  }
-  header{
-    position:sticky; top:0; z-index:50;
-    backdrop-filter: blur(10px);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 85%, #0000), color-mix(in srgb, var(--bg) 60%, #0000));
-    border-bottom: 1px solid rgba(255,255,255,.12);
-  }
-  .wrap{max-width:1200px;margin:0 auto;padding:14px 18px;display:flex;gap:14px;align-items:center}
-  .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
-  .logo svg{width:46px;height:46px;filter: drop-shadow(0 0 12px rgba(0,230,161,.45));}
-  .logo h1{font-size:clamp(18px,3.2vw,28px);margin:0}
-  .sub{font-size:12px;color:var(--muted)}
-  .header-actions{margin-left:auto;display:flex;gap:10px;align-items:center}
-  .btn{background:linear-gradient(135deg, var(--accent1), var(--accent2));color:#07130f;border:0;padding:9px 12px;border-radius:999px;font-weight:800;cursor:pointer;box-shadow:var(--ring)}
-  .ghost{background:transparent;border:1px solid var(--pill-br);color:var(--text);padding:8px 12px;border-radius:999px;cursor:pointer}
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  /* Admin Dashboard */
-  .dash{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:80}
-  .dash.open{display:block}
-  .desk{position:absolute;inset:24px;display:flex;flex-direction:column;background:var(--card);
-        border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden}
-  .desk .bar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
-  .tabs{display:flex;gap:6px}
-  .tab{background:var(--pill-bg);border:1px solid var(--pill-br);padding:8px 12px;border-radius:10px;cursor:pointer}
-  .tab.active{background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#062119;font-weight:800}
-  .desk .body{flex:1;display:none;padding:12px;overflow:auto}
-  .desk .body.active{display:block}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .field{display:flex;flex-direction:column;gap:6px;margin:8px 0}
-  input[type="text"],input[type="password"],input[type="date"],select,textarea{background:color-mix(in srgb, var(--card) 94%, #fff 6%);color:var(--text);border:1px solid var(--pill-br);border-radius:10px;padding:8px 10px}
-  [data-theme="light"] input[type="text"],[data-theme="light"] input[type="password"],[data-theme="light"] input[type="date"],[data-theme="light"] select,[data-theme="light"] textarea{background:#fff;color:#2a2a24}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border-bottom:1px solid rgba(255,255,255,.14);padding:6px;vertical-align:top}
-  .ocr-drop{border:1px dashed var(--pill-br);padding:12px;border-radius:10px;text-align:center}
-  .ocr-drop.drag{background:rgba(47,230,255,.10)}
+  <!-- Tesseract for OCR (kept) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-  main{max-width:1200px;margin:18px auto 64px;padding:0 14px}
-  .section{margin-bottom:18px}
-  .section h2{margin:0 0 12px 0;font-size:18px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));gap:12px}
-  .tile{position:relative;background:var(--card);
-        border:1px solid var(--pill-br);border-radius:14px;padding:10px;
-        aspect-ratio:1/1.08;display:flex;flex-direction:column;justify-content:space-between;
-        box-shadow:var(--shadow-card);overflow:hidden}
-  .top{display:flex;justify-content:center}
-  .emblem{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent1),var(--accent3));
-          display:grid;place-items:center;color:#062119;font-size:16px;font-weight:900;box-shadow:0 0 16px rgba(0,230,161,.4);overflow:hidden}
-  .emblem img{width:100%;height:100%;object-fit:cover;border-radius:12px}
-  .nums{font-size:24px;letter-spacing:2px;font-weight:900;text-align:center;margin-top:6px}
-  .nameUnder{font-size:13px;color:var(--muted);text-align:center;margin-top:4px}
-  .pill{display:inline-block;font-size:11px;padding:3px 8px;border-radius:999px;background:var(--pill-bg);border:1px solid var(--pill-br);color:var(--text);margin-top:6px}
-  .meta{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--muted);align-items:center;margin-top:6px}
-  .status{font-size:10px;padding:2px 6px;border-radius:999px;justify-self:start;background:rgba(25,221,154,.15);color:#19dd9a;border:1px solid rgba(25,221,154,.35)}
-  .status.closed{background:rgba(255,92,122,.12);color:#ff5c7a;border-color:rgba(255,92,122,.35)}
-  .history-btn{justify-self:end;font-size:11px;color:var(--text);background:var(--pill-bg);border:1px solid var(--pill-br);padding:3px 6px;border-radius:8px;cursor:pointer}
-  .date{font-size:11px;color:var(--muted);text-align:center}
+  <style>
+    :root {
+      --bg: #0b2a24; --bg-2: #0e332c; --bg-3: #0c2723;
+      --card: #123a32; --card-2: #0f332c; --card-3: #0e2d27;
+      --text: #e9f7f4; --muted: #9ed7cb; --accent: #51ffc6; --accent-2: #99ffea;
+      --danger: #ff6b6b; --ok: #2ee59d; --shadow: 0 8px 22px rgba(0,0,0,.35); --radius: 16px;
+    }
+    [data-theme="light"] {
+      --bg:#efe7da; --bg-2:#e7dece; --bg-3:#dfd3c0;
+      --card:#f6efe4; --card-2:#f0e7d9; --card-3:#eadfcd;
+      --text:#2a2a2a; --muted:#4b5a55; --accent:#1fbf8a; --accent-2:#0aa39b;
+      --danger:#b33a3a; --ok:#157a57; --shadow:0 6px 16px rgba(0,0,0,.18); --radius:16px;
+    }
 
-  /* PIN & History modals */
-  .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.55);z-index:90}
-  .modal.open{display:grid}
-  .card{width:min(640px,94vw);background:var(--card);border-radius:12px;border:1px solid var(--pill-br);box-shadow:var(--shadow-card);padding:12px}
-  .card h3{margin:8px 0 12px 0}
-  .eye{cursor:pointer;user-select:none;font-size:18px;padding:6px}
-</style>
+    html, body { height: 100%; }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--text);
+           background: radial-gradient(1200px 1200px at 15% 10%, var(--bg-2) 0%, var(--bg) 50%, var(--bg-3) 100%) fixed; }
+
+    /* Header */
+    .topbar { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; position:sticky; top:0; z-index:30; background:linear-gradient(0deg, transparent, rgba(0,0,0,.12)); backdrop-filter:blur(4px); }
+    .brand { display:grid; grid-auto-flow:column; gap:14px; align-items:center; font-weight:800; letter-spacing:.4px; font-size:26px; }
+    .logo { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background: radial-gradient(90px 90px at 20% 20%, #00ffd5 0%, #2af4a6 40%, #0aa39b 100%); color:#0b2a24; font-weight:900; box-shadow:var(--shadow); }
+    .brand small { font-weight:500; font-size:12px; color:var(--muted); }
+    .actions { display:grid; grid-auto-flow:column; gap:10px; }
+    .btn { border:none; outline:none; cursor:pointer; background:linear-gradient(135deg, var(--card-2), var(--card)); color:var(--text); padding:10px 16px; border-radius:999px; font-weight:600; box-shadow:var(--shadow); display:inline-flex; align-items:center; gap:10px; }
+    .btn:hover { filter: brightness(1.06); }
+    .btn.ghost { background: var(--card-2); }
+    .btn.danger { background: linear-gradient(135deg, #b54545, #782d2d); }
+    .chip { padding:4px 10px; border-radius:999px; font-size:12px; background:var(--card-3); color:var(--muted); }
+
+    .wrap { padding:18px 24px 64px; max-width:1480px; margin:0 auto; }
+    .section-title { font-size:22px; font-weight:800; margin:18px 0 8px; letter-spacing:.3px; }
+    .grid { display:grid; gap:14px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+    .card { border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)); box-shadow:var(--shadow); overflow:hidden; border:1px solid rgba(255,255,255,.06); min-height:160px; display:grid; grid-template-rows:auto 1fr auto; }
+    .card-header { display:flex; align-items:center; gap:10px; padding:12px 14px; background:linear-gradient(180deg, var(--card-2), var(--card-3)); border-bottom:1px solid rgba(255,255,255,.07); }
+    .badge { width:34px; height:34px; border-radius:10px; flex:0 0 auto; display:grid; place-items:center; background: radial-gradient(70px 70px at 10% 10%, var(--accent-2) 0%, var(--accent) 65%, #1f9d76 100%); color:#09231e; font-weight:900; border:1px solid rgba(0,0,0,.15); }
+    .title { font-weight:800; font-size:14px; }
+    .subtitle { font-weight:600; font-size:12px; opacity:.8; }
+    .card-body { padding:12px 14px; display:grid; gap:8px; }
+    .result-big { font-size:28px; letter-spacing:2px; font-weight:800; display:inline-block; }
+    .meta { font-size:12px; display:flex; gap:12px; color:var(--muted); }
+    .status { font-size:11px; opacity:.9; }
+    .card-footer { padding:10px 14px; border-top:1px solid rgba(255,255,255,.07); display:flex; align-items:center; justify-content:space-between; background:var(--card-2); }
+    .link { color: var(--accent-2); text-decoration: underline; cursor: pointer; }
+
+    /* Admin Drawer */
+    .drawer { position:fixed; inset:0; display:none; z-index:70; background:rgba(0,0,0,.45); }
+    .drawer.open { display:block; }
+    .panel { position:absolute; inset:0 0 0 auto; width:min(1200px,100%); max-width:96%; background:var(--bg-2); color:var(--text); overflow:auto; box-shadow:var(--shadow); padding:18px 22px 40px; }
+    .panel h2 { margin:0 0 8px; }
+    .tabs { display:grid; grid-auto-flow:column; gap:8px; width:max-content; margin-bottom:14px; }
+    .tab { background:var(--card-2); padding:8px 12px; border-radius:999px; cursor:pointer; }
+    .tab.active { background:var(--accent); color:#0b2a24; font-weight:800; }
+    .table { width:100%; border-collapse:collapse; }
+    .table th, .table td { padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.08); font-size:14px; }
+    .table th { text-align:left; color:var(--muted); }
+    .controls { display:grid; grid-auto-flow:column; gap:8px; width:max-content; margin-bottom:12px; }
+
+    input[type="text"], input[type="time"], input[type="date"] { background:var(--card-3); border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius:10px; padding:8px 10px; outline:none; }
+    textarea { width:100%; min-height:160px; resize:vertical; background:var(--card-3); border:1px solid rgba(255,255,255,.1); color:var(--text); border-radius:12px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .hidden { display:none; }
+    .right { margin-left:auto; }
+  </style>
 </head>
 <body data-theme="dark">
-  <!-- PIN -->
-  <div class="modal" id="pinModal">
-    <div class="card">
-      <h3 id="pinTitle">Acceso administrador</h3>
-      <div class="field">
-        <label id="pinLabel">Introduce PIN</label>
-        <div class="row">
-          <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="••••"/>
-          <span id="toggleEye" class="eye" title="Mostrar/Ocultar">👁️</span>
-          <button class="btn" id="pinOk">Entrar</button>
-        </div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">BR</div>
+      <div>
+        Beast Reader
+        <div><small>Live results — USA, RD & Special</small></div>
       </div>
     </div>
-  </div>
-
-  <!-- History Modal (aligned + edit tools) -->
-  <div class="modal" id="historyModal">
-    <div class="card">
-      <h3 id="historyTitle">Historial</h3>
-      <div id="historyBody"></div>
-      <div class="row" style="justify-content:space-between;margin-top:10px">
-        <div class="row">
-          <input id="histDate" type="date"/>
-          <input id="histValue" placeholder="Resultado"/>
-          <button class="btn" id="histAdd">Agregar</button>
-        </div>
-        <button class="ghost" id="closeHistory">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Admin Dashboard -->
-  <div class="dash" id="adminDash" aria-hidden="true">
-    <div class="desk">
-      <div class="bar">
-        <strong>Beast Reader — Admin</strong>
-        <span class="row">
-          <span>Idioma</span><input id="langTgl" type="checkbox"/>
-          <span style="margin-left:8px">Tema</span><input id="themeTgl" type="checkbox"/>
-          <span style="margin-left:12px">Fecha para resultados</span><input id="resultDate" type="date"/>
-        </span>
-        <input id="search" placeholder="Buscar..." style="margin-left:auto;min-width:220px"/>
-        <button class="ghost" id="closeAdmin">Cerrar</button>
-      </div>
-      <div class="bar">
-        <div class="tabs">
-          <div class="tab active" data-tab="results">Resultados</div>
-          <div class="tab" data-tab="ocr">OCR</div>
-          <div class="tab" data-tab="catalog">Catálogo</div>
-          <div class="tab" data-tab="logos">Logos</div>
-          <div class="tab" data-tab="visibility">Visibilidad</div>
-        </div>
-        <div class="row" style="margin-left:auto">
-          <button class="ghost" id="autoScrollBtn">Auto Scroll</button>
-        </div>
-      </div>
-      <div class="body active" id="tab-results">
-        <div class="row" style="justify-content:space-between">
-          <div class="field"><em>Editar/guardar resultados manualmente.</em></div>
-          <div class="row">
-            <button class="ghost" id="resetResults">Resetear resultados</button>
-          </div>
-        </div>
-        <div id="manualTable"></div>
-      </div>
-      <div class="body" id="tab-ocr">
-        <div class="row">
-          <div class="field" style="flex:1">
-            <label>OCR — Arrastra imágenes o haz clic (múltiples)</label>
-            <div id="drop" class="ocr-drop">Suelta aquí (.jpg/.png). <input type="file" id="file" accept="image/*" multiple hidden /></div>
-          </div>
-          <div class="field">
-            <label>Acciones</label>
-            <div class="row">
-              <button class="ghost" id="btnParse">Previsualizar tabla</button>
-              <button class="btn" id="btnAssignAll">Guardar todos</button>
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <label>Contenido OCR (bruto)</label>
-          <textarea id="ocrOut" rows="8" placeholder="Aquí aparecerá el texto detectado..."></textarea>
-        </div>
-        <div class="field">
-          <label>Tabla detectada</label>
-          <div id="ocrTable"></div>
-        </div>
-      </div>
-      <div class="body" id="tab-catalog">
-        <div class="row" style="justify-content:space-between">
-          <div><strong>Catálogo (editar draws, horas y visibilidad)</strong></div>
-          <div class="row">
-            <button class="ghost" id="addLottery">Añadir lotería</button>
-            <button class="ghost" id="addDraw">Añadir draw a selección</button>
-            <button class="btn" id="saveCatalog">Guardar catálogo</button>
-          </div>
-        </div>
-        <div id="catalogTable"></div>
-      </div>
-      <div class="body" id="tab-logos">
-        <div class="row">
-          <input id="logoFile" type="file" accept="image/*" multiple/>
-          <button class="ghost" id="assignLogo">Asignar a selección</button>
-          <button class="ghost" id="removeLogo">Quitar logo de selección</button>
-        </div>
-        <div id="logoGrid"></div>
-      </div>
-      <div class="body" id="tab-visibility">
-        <div class="field"><em>Marca qué loterías se muestran en la página pública.</em></div>
-        <div id="visibilityTable"></div>
-      </div>
-    </div>
-  </div>
-
-  <header>
-    <div class="wrap">
-      <a class="logo" href="#">
-        <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="var(--accent1)"/><stop offset="1" stop-color="var(--accent3)"/></linearGradient></defs>
-          <rect x="4" y="4" width="64" height="64" rx="14" fill="url(#g1)"/>
-          <circle cx="26" cy="28" r="5" fill="#001219"/><circle cx="46" cy="28" r="5" fill="#001219"/>
-          <path d="M18 46c10-2 22-12 18-22-3 8 8 14 19 11-4 12-18 19-37 11z" fill="#001219" opacity=".85"/>
-        </svg>
-        <div>
-          <h1>Beast Reader</h1>
-          <div class="sub" id="subTitle">Resultados en vivo — USA, RD & Special</div>
-        </div>
-      </a>
-      <div class="header-actions">
-        <button class="ghost" id="adminBtn">Admin</button>
-        <button class="ghost" id="autoScrollHeader">⟱ Auto Scroll</button>
-      </div>
+    <div class="actions header-actions">
+      <button class="btn ghost" id="autoScrollHeader">⬇ Auto Scroll</button>
+      <button class="btn ghost" id="syncNowBtn">⟳ Sync</button>
+      <button class="btn" id="adminBtn">Admin</button>
     </div>
   </header>
 
-  <main id="content"></main>
+  <main class="wrap" id="publicBoard">
+    <div class="section-title">USA Lotteries</div>
+    <div class="grid" id="grid-usa"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <div class="section-title">Santo Domingo Lotteries</div>
+    <div class="grid" id="grid-rd"></div>
+
+    <div class="section-title">Special Lotteries</div>
+    <div class="grid" id="grid-special"></div>
+  </main>
+
+  <!-- Admin Drawer -->
+  <div class="drawer" id="drawer">
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <h2 style="margin:0;">Beast Reader — Admin</h2>
+        <span class="chip">Idioma</span>
+        <input type="checkbox" id="langToggle" class="mr8" />
+        <span class="chip">Tema</span>
+        <input type="checkbox" id="themeToggle" class="mr8" />
+        <span class="chip">Fecha para resultados</span>
+        <input type="date" id="datePicker" />
+        <input type="text" id="searchInput" class="right" placeholder="Buscar..." style="max-width: 260px;" />
+        <button class="btn ghost" id="closeDrawer">Cerrar</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="results">Resultados</div>
+        <div class="tab" data-tab="ocr">OCR</div>
+        <div class="tab" data-tab="catalog">Catálogo</div>
+        <div class="tab" data-tab="logos">Logos</div>
+        <div class="tab" data-tab="visibility">Visibilidad</div>
+      </div>
+
+      <!-- RESULTS TAB -->
+      <section id="tab-results">
+        <p class="mb10">Editar/guardar resultados manualmente.</p>
+        <div class="controls">
+          <button class="btn danger" id="resetResultsBtn">Reset results</button>
+          <button class="btn" id="refreshFromOCRBtn">Refresh from OCR</button>
+        </div>
+        <div id="resultsTableContainer"></div>
+      </section>
+
+      <!-- OCR TAB -->
+      <section id="tab-ocr" class="hidden">
+        <p class="mb10">Arrastra imágenes o pega texto. Previsualiza y guarda la tabla detectada.</p>
+        <div class="controls">
+          <input type="file" id="ocrFile" accept="image/*" multiple />
+          <button class="btn" id="runOcrBtn">Ejecutar OCR</button>
+          <button class="btn" id="previewFromTextBtn">Previsualizar texto</button>
+          <button class="btn" id="clearOcrPreview">Limpiar preview</button>
+        </div>
+        <textarea id="ocrText" placeholder="Pega aquí el texto (ej.: 'Midday — 992 - 0845 ...')"></textarea>
+        <div class="mb10"></div>
+        <div id="ocrPreviewContainer"></div>
+      </section>
+
+      <!-- CATALOG TAB -->
+      <section id="tab-catalog" class="hidden">
+        <div class="controls">
+          <button class="btn" id="addLotteryBtn">Añadir lotería</button>
+          <button class="btn" id="addDrawToSelectionBtn">Añadir draw a selección</button>
+          <button class="btn" id="saveCatalogBtn">Guardar catálogo</button>
+        </div>
+        <div id="catalogTableContainer"></div>
+      </section>
+
+      <!-- LOGOS TAB (placeholder) -->
+      <section id="tab-logos" class="hidden">
+        <p class="mb10">Sube los logos oficiales; se asocian por nombre de lotería.</p>
+        <input type="file" id="logoUpload" multiple accept="image/*" />
+        <div id="logosList" class="mb16"></div>
+      </section>
+
+      <!-- VISIBILITY TAB -->
+      <section id="tab-visibility" class="hidden">
+        <p class="mb10">Marca qué loterías se muestran en la página pública.</p>
+        <div id="visibilityTableContainer"></div>
+      </section>
+    </div>
+  </div>
+
   <script>
-  /*************** i18n ***************/
-  const i18n={ es:{usa:"Loterías de USA",rd:"Loterías de Santo Domingo",special:"Loterías Special",open:"Abierta",closed:"Cerrada",draw:"Sorteo",close:"Cierre",save:"Guardar",saveAll:"Guardar todos",abbr:"Abrev.",map:"Mapa",detected:"Detectado",value:"Valor",actions:"Acciones",date:"Fecha",history:"Historial",viewHistory:"Historial",reset:"Resetear resultados"},
-              en:{usa:"USA Lotteries",rd:"Santo Domingo Lotteries",special:"Special Lotteries",open:"Open",closed:"Closed",draw:"Draw",close:"Close",save:"Save",saveAll:"Save all",abbr:"Abbrev.",map:"Map",detected:"Detected",value:"Value",actions:"Actions",date:"Date",history:"History",viewHistory:"History",reset:"Reset results"} };
-  let lang=localStorage.getItem("lang")||"es";
-  function applyLang(){ document.getElementById("subTitle").textContent = lang==="es"?"Resultados en vivo — USA, RD & Special":"Live results — USA, RD & Special"; render(); }
+    /**********************************************************
+     * STORAGE KEYS (both schemas) & HELPERS
+     **********************************************************/
+    const LS = {
+      // New schema (alternate)
+      CATALOG: 'br_catalog',
+      VIS: 'br_visibility',
+      RESULTS_PREFIX: 'br_results::',   // + YYYY-MM-DD
+      OCR_PREFIX: 'br_ocr_preview::',  // + YYYY-MM-DD
+      DATE: 'br_selected_date',
+      THEME: 'br_theme',
+      PIN_OK: 'br_admin_pin_ok',
+      LOGOS: 'br_logos',
 
-  /*************** Theme ***************/
-  const savedTheme=localStorage.getItem("theme")||"dark"; document.body.setAttribute("data-theme",savedTheme);
-
-  /*************** Admin open + PIN ***************/
-  const ADMIN_PIN="1983";
-  const adminDash=document.getElementById("adminDash");
-  const pinModal=document.getElementById("pinModal");
-  const pinInput=document.getElementById("pinInput");
-  const pinOk=document.getElementById("pinOk");
-  const toggleEye=document.getElementById("toggleEye");
-  document.getElementById("adminBtn").addEventListener("click",()=>{pinModal.classList.add("open"); pinInput.value=""; pinInput.type="password";});
-  pinOk.addEventListener("click",()=>{ if(pinInput.value===ADMIN_PIN){ pinModal.classList.remove("open"); openAdmin(); } else { pinInput.style.borderColor="var(--danger)"; setTimeout(()=>pinInput.style.borderColor="",600);} });
-  toggleEye.addEventListener("click",()=>{ pinInput.type=pinInput.type==="password"?"text":"password"; });
-  pinModal.addEventListener("click",e=>{ if(e.target===pinModal) pinModal.classList.remove("open"); });
-
-  function openAdmin(){
-    adminDash.classList.add("open");
-    // Tabs
-    const tabs=[...document.querySelectorAll(".tab")];
-    const bodies=[...document.querySelectorAll(".desk .body")];
-    function setTab(id){ tabs.forEach(t=>t.classList.toggle("active", t.dataset.tab===id)); bodies.forEach(b=>b.classList.toggle("active", b.id==="tab-"+id)); if(id==="results") buildManual(); if(id==="ocr") buildOCR(); if(id==="catalog") buildCatalog(); if(id==="logos") buildLogos(); if(id==="visibility") buildVisibility(); }
-    tabs.forEach(t=>t.onclick=()=>setTab(t.dataset.tab)); setTab("results");
-    document.getElementById("closeAdmin").onclick=()=>adminDash.classList.remove("open");
-    // Wire toggles every open
-    const themeTgl=document.getElementById("themeTgl"); const langTgl=document.getElementById("langTgl");
-    themeTgl.checked=(localStorage.getItem("theme")||"dark")==="light";
-    langTgl.checked=(lang==="en");
-    themeTgl.onchange=(e)=>{const th=e.target.checked?"light":"dark"; document.body.setAttribute("data-theme",th); localStorage.setItem("theme",th);};
-    langTgl.onchange=(e)=>{ lang=e.target.checked?"en":"es"; localStorage.setItem("lang",lang); applyLang(); };
-    document.getElementById("search").oninput=()=>render();
-    // Date prefill
-    const dateInput=document.getElementById("resultDate");
-    const storedDate = localStorage.getItem("br_date") || new Date().toISOString().slice(0,10);
-    dateInput.value = storedDate;
-    dateInput.onchange = () => localStorage.setItem("br_date", dateInput.value);
-    // Auto scroll mirror
-    document.getElementById("autoScrollBtn").onclick=toggleAutoScroll;
-    // Reset results
-    const resetBtn=document.getElementById("resetResults");
-    resetBtn.textContent=i18n[lang].reset;
-    resetBtn.onclick=()=>{
-      if(confirm("¿Seguro que deseas borrar todos los resultados e historial?")){ localStorage.removeItem(KEY_RESULTS); localStorage.removeItem(KEY_HISTORY); alert("Resultados reseteados."); render(); buildManual(); }
+      // Legacy (stable)
+      LEGACY_RESULTS: 'br_results_v1',
+      LEGACY_HISTORY: 'br_history_v1',
+      LEGACY_CATALOG: 'br_catalog_v1',
+      LEGACY_LOGOS: 'br_logos_v1'
     };
-  }
 
-  /*************** Date helper ***************/
-  function getSelectedDateISO(){
-    const d = localStorage.getItem("br_date") || new Date().toISOString().slice(0,10);
-    // store at noon local to avoid TZ day-shift
-    const dt = new Date(d+"T12:00:00");
-    return dt.toISOString();
-  }
+    const $ = (sel, p=document) => p.querySelector(sel);
+    const $$ = (sel, p=document) => Array.from(p.querySelectorAll(sel));
+    const todayStr = () => new Date().toISOString().slice(0,10);
 
-  /*************** Auto scroll (moderate) ***************/
-  let scrollTimer=null, scrollDown=true;
-  function toggleAutoScroll(){
-    const headerBtn=document.getElementById("autoScrollHeader");
-    if(scrollTimer){ clearInterval(scrollTimer); scrollTimer=null; if(headerBtn) headerBtn.textContent="⟱ Auto Scroll"; return;}
-    if(headerBtn) headerBtn.textContent="■ Detener";
-    const area=document.scrollingElement;
-    scrollTimer=setInterval(()=>{
-      const step=0.35; // ~35 px/s
-      area.scrollBy(0, scrollDown?step:-step);
-      if(area.scrollTop+window.innerHeight+2>=area.scrollHeight) scrollDown=false;
-      if(area.scrollTop<=1) scrollDown=true;
-    }, 10);
-  }
-  document.getElementById("autoScrollHeader").onclick=toggleAutoScroll;
+    function readJSON(key, fallback) { try { const t = localStorage.getItem(key); return t ? JSON.parse(t) : fallback; } catch(e) { console.error('readJSON', key, e); return fallback; } }
+    function writeJSON(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+    function resultsKey(dateStr) { return LS.RESULTS_PREFIX + dateStr; }
+    function ocrKey(dateStr) { return LS.OCR_PREFIX + dateStr; }
 
-  /*************** Catalog + persistence ***************/
-  const KEY_CATALOG="br_catalog_v1"; const KEY_RESULTS="br_results_v1"; const KEY_LOGOS="br_logos_v1"; const KEY_HISTORY="br_history_v1";
-  function minus20(t){const [H,M]=t.split(":").map(Number); const d=new Date(); d.setHours(H,M,0,0); d.setMinutes(d.getMinutes()-20); return d.toTimeString().slice(0,5);}
-  const ALL=[0,1,2,3,4,5,6], MON_SAT=[1,2,3,4,5,6];
-  const SEED={
-    usa:[
-      {id:"ny", name:"New York", tz:"ET", visible:true, draws:[{code:"Midday", time:"14:30", days:ALL},{code:"Evening", time:"22:30", days:ALL}]},
-      {id:"nj", name:"New Jersey", tz:"ET", visible:true, draws:[{code:"Midday", time:"12:59", days:ALL},{code:"Evening", time:"22:57", days:ALL}]},
-      {id:"ct", name:"Connecticut", tz:"ET", visible:true, draws:[{code:"Day", time:"13:57", days:ALL},{code:"Night", time:"22:29", days:ALL}]},
-      {id:"fl", name:"Florida", tz:"ET", visible:true, draws:[{code:"Midday", time:"13:30", days:ALL},{code:"Evening", time:"21:45", days:ALL}]},
-      {id:"ga", name:"Georgia", tz:"ET", visible:true, draws:[{code:"Midday", time:"12:29", days:ALL},{code:"Evening", time:"18:59", days:ALL},{code:"Night", time:"23:34", days:ALL}]},
-      {id:"pa", name:"Pennsylvania", tz:"ET", visible:true, draws:[{code:"Day", time:"13:35", days:ALL},{code:"Evening", time:"18:59", days:ALL}]},
-      {id:"de", name:"Delaware", tz:"ET", visible:true, draws:[{code:"Day", time:"13:58", days:ALL},{code:"Night", time:"19:57", days:ALL}]},
-      {id:"md", name:"Maryland", tz:"ET", visible:true, draws:[{code:"Midday", time:"12:28", days:ALL},{code:"Evening", time:"19:56", days:ALL}]},
-      {id:"ma", name:"Massachusetts", tz:"ET", visible:true, draws:[{code:"Midday", time:"14:00", days:ALL},{code:"Evening", time:"21:00", days:ALL}]},
-      {id:"va", name:"Virginia", tz:"ET", visible:true, draws:[{code:"Day", time:"13:59", days:ALL},{code:"Night", time:"23:00", days:ALL}]},
-      {id:"mi", name:"Michigan", tz:"ET", visible:true, draws:[{code:"Midday", time:"12:59", days:ALL},{code:"Evening", time:"19:29", days:ALL}]},
-      {id:"nc", name:"North Carolina", tz:"ET", visible:true, draws:[{code:"Day", time:"15:00", days:ALL},{code:"Evening", time:"23:22", days:ALL}]},
-      {id:"sc", name:"South Carolina", tz:"ET", visible:true, draws:[{code:"Midday", time:"12:59", days:MON_SAT},{code:"Evening", time:"18:59", days:ALL}]},
-      {id:"tx", name:"Texas", tz:"CT", visible:true, draws:[{code:"Morning", time:"10:00", days:MON_SAT},{code:"Day", time:"12:27", days:MON_SAT},{code:"Evening", time:"18:00", days:MON_SAT},{code:"Night", time:"22:12", days:MON_SAT}]},
-      {id:"tn", name:"Tennessee", tz:"CT", visible:true, draws:[{code:"Morning", time:"09:28", days:MON_SAT},{code:"Midday", time:"12:28", days:MON_SAT},{code:"Evening", time:"18:28", days:ALL}]}
-    ],
-    rd:[
-      {id:"real", name:"Lotería Real", tz:"AST", visible:true, draws:[{code:"Mediodía", time:"12:55", days:ALL}]},
-      {id:"ganamas", name:"Gana Más", tz:"AST", visible:true, draws:[{code:"Tarde", time:"14:30", days:ALL}]},
-      {id:"loteka", name:"Loteka", tz:"AST", visible:true, draws:[{code:"Noche", time:"19:55", days:ALL}]},
-      {id:"nacional", name:"Lotería Nacional", tz:"AST", visible:true, draws:[{code:"Tarde", time:"14:30", days:ALL},{code:"Noche", time:"21:00", days:[1,2,3,4,5,6]},{code:"Domingo", time:"18:00", days:[0]}]},
-      {id:"quiniela", name:"Quiniela Palé (Leidsa)", tz:"AST", visible:true, draws:[{code:"Diario", time:"20:55", days:[1,2,3,4,5,6]},{code:"Domingo", time:"15:55", days:[0]}]},
-      {id:"laprimera", name:"La Primera", tz:"AST", visible:true, draws:[{code:"AM", time:"12:00", days:ALL},{code:"PM", time:"20:00", days:ALL}]},
-      {id:"lasuerte", name:"La Suerte Dominicana", tz:"AST", visible:true, draws:[{code:"AM", time:"12:30", days:ALL},{code:"PM", time:"18:00", days:ALL}]},
-      {id:"lotedom", name:"LoteDom", tz:"AST", visible:true, draws:[{code:"Tarde", time:"13:55", days:ALL}]}
-    ],
-    special:[
-      {id:"ny-bk", name:"NY-BK", tz:"ET", visible:true, draws:[{code:"AM", time:"12:00", days:ALL},{code:"PM", time:"22:00", days:ALL}]},
-      {id:"ny-race", name:"NY Horses", tz:"ET", visible:true, draws:[{code:"R1", time:"14:00", days:ALL},{code:"R2", time:"18:30", days:ALL},{code:"R3", time:"21:30", days:ALL}]},
-      {id:"357", name:"3-5-7", tz:"ET", visible:true, draws:[{code:"Main", time:"20:30", days:ALL}]}
-    ]
-  };
-  function loadCatalog(){ return JSON.parse(localStorage.getItem(KEY_CATALOG)||"null")||SEED; }
-  function saveCatalog(cat){ localStorage.setItem(KEY_CATALOG, JSON.stringify(cat)); }
+    /**********************************************************
+     * Catalog seed (array form) — based on v8.3.x
+     **********************************************************/
+    const SeedCatalog = [
+      { id:'usa/ny/Midday',  section:'usa', lottery:'New York', draw:'Midday',  drawTime:'14:30', closeTime:'14:10', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/ny/Evening', section:'usa', lottery:'New York', draw:'Evening', drawTime:'22:30', closeTime:'22:10', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/nj/Midday',  section:'usa', lottery:'New Jersey', draw:'Midday',  drawTime:'12:59', closeTime:'12:39', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/nj/Evening', section:'usa', lottery:'New Jersey', draw:'Evening', drawTime:'22:57', closeTime:'22:37', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/ct/Day', section:'usa', lottery:'Connecticut', draw:'Day', drawTime:'13:57', closeTime:'13:37', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/ct/Night', section:'usa', lottery:'Connecticut', draw:'Night', drawTime:'22:29', closeTime:'22:09', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/fl/Midday', section:'usa', lottery:'Florida', draw:'Midday', drawTime:'13:30', closeTime:'13:10', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'usa/fl/Evening', section:'usa', lottery:'Florida', draw:'Evening', drawTime:'21:45', closeTime:'21:25', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'special/ny-bk/AM', section:'special', lottery:'NY-BK', draw:'AM', drawTime:'12:00', closeTime:'11:40', days:[0,1,2,3,4,5,6], visible:true },
+      { id:'special/ny-bk/PM', section:'special', lottery:'NY-BK', draw:'PM', drawTime:'22:00', closeTime:'21:40', days:[0,1,2,3,4,5,6], visible:true }
+      // (trimmed: add the rest from your alt file as needed)
+    ];
 
-  const logos = JSON.parse(localStorage.getItem(KEY_LOGOS)||"{}");
-  const results = JSON.parse(localStorage.getItem(KEY_RESULTS)||"{}");
-  const history = JSON.parse(localStorage.getItem(KEY_HISTORY)||"{}");
-  function historyKey(section,id,draw){ return `${section}/${id}/${draw}`; }
-  function appendHistory(section,id,draw,rec){
-    const key=historyKey(section,id,draw);
-    history[key] = history[key] || [];
-    const last = history[key][history[key].length-1];
-    if(!last || last.value !== rec.value || last.ts !== rec.ts){
-      history[key].push(rec);
-      if(history[key].length>100) history[key].shift();
-      localStorage.setItem(KEY_HISTORY, JSON.stringify(history));
-    }
-  }
-  function setResult(section,id,draw,value, tsOverride){
-    const ts = tsOverride || getSelectedDateISO();
-    results[section]??={}; results[section][id]??={}; results[section][id][draw]={value,ts};
-    localStorage.setItem(KEY_RESULTS, JSON.stringify(results));
-    appendHistory(section,id,draw,{value,ts});
-    render();
-  }
-
-  /*************** Manual Results table ***************/
-  function buildManual(){
-    const host=document.getElementById("manualTable"); host.innerHTML="";
-    const cat=loadCatalog();
-    Object.keys(cat).forEach(section=>{
-      const h=document.createElement("h3"); h.textContent=(section==="usa"?i18n[lang].usa:section==="rd"?i18n[lang].rd:i18n[lang].special); host.appendChild(h);
-      const table=document.createElement("table");
-      table.innerHTML="<thead><tr><th>Lotería</th><th>Draw</th><th>Hora sorteo</th><th>Hora cierre</th><th>Resultado</th><th></th></tr></thead>";
-      const tb=document.createElement("tbody");
-      cat[section].forEach(l=>{
-        if(!l.visible) return;
-        l.draws.forEach(d=>{
-          const tr=document.createElement("tr");
-          const res=results[section]?.[l.id]?.[d.code]?.value||"";
-          const inp=document.createElement("input"); const fmt=section==="usa"?"123-4567":"12-34-56"; inp.placeholder=fmt; inp.value=res;
-          const btn=document.createElement("button"); btn.className="btn"; btn.textContent=i18n[lang].save;
-          btn.onclick=()=>setResult(section,l.id,d.code,inp.value.trim(), getSelectedDateISO());
-          tr.appendChild(td(l.name)); tr.appendChild(td(d.code)); tr.appendChild(td(d.time)); tr.appendChild(td(minus20(d.time)));
-          const tdv=td(""); tdv.appendChild(inp); tr.appendChild(tdv); const tdb=td(""); tdb.appendChild(btn); tr.appendChild(tdb);
-          tb.appendChild(tr);
-        });
-      });
-      table.appendChild(tb); host.appendChild(table);
-    });
-  }
-
-  /*************** OCR (batch) ***************/
-  let OCR_TEXTS=[];
-  function buildOCR(){
-    const drop=document.getElementById("drop"); const fileInput=document.getElementById("file"); const out=document.getElementById("ocrOut");
-    drop.onclick=()=>fileInput.click();
-    ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));
-    ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));
-    drop.addEventListener("drop",e=>{ if(e.dataTransfer.files?.length) processFiles([...e.dataTransfer.files]); });
-    fileInput.onchange=(e)=>{ if(e.target.files?.length) processFiles([...e.target.files]); };
-    document.getElementById("btnParse").onclick=()=>renderOCRTable(out.value);
-    document.getElementById("btnAssignAll").onclick=()=>assignAllFromOCR();
-  }
-  async function processFiles(files){
-    const out=document.getElementById("ocrOut"); out.value="Procesando "+files.length+" imagen(es)...";
-    OCR_TEXTS=[];
-    for(const f of files){
-      try{ const {data:{text}}=await Tesseract.recognize(f,'eng',{logger:m=>{}}); OCR_TEXTS.push(text.trim()); }catch(e){ OCR_TEXTS.push("ERROR "+e.message); }
-    }
-    out.value=OCR_TEXTS.join("\n---\n"); renderOCRTable(out.value);
-  }
-  function parseOCRTextBlock(txt){
-    const out=[]; const lines=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    const header = lines.find(x=>/loter[ií]a|first|second|third|pick_3|pick_4/i.test(x));
-    if(header){
-      for(const ln of lines){
-        const m = ln.match(/^([A-Za-z0-9\-\s\.]+?)\s+((?:\d{2}|x{1,2}|xx)\b.*)$/i);
-        if(!m) continue;
-        const name=m[1].trim(); const right=m[2].trim().replace(/\s+/g,' ').replace(/\s-\s/g,'-');
-        const p3=right.match(/\b(\d{3})\b(?!-)/); const p4=right.match(/\b(\d{4})\b/);
-        const pairs=(right.match(/\b\d{2}\b/g)||[]).slice(0,3);
-        out.push({abbr:name, detected: p3&&p4 ? (p3[1]+"-"+p4[1]) : pairs.length===3 ? pairs.join("-") : right});
+    // Ensure catalog + visibility in storage (new schema). If something is already there, merge by id.
+    function ensureCatalog() {
+      let catalog = readJSON(LS.CATALOG, null);
+      if (!catalog || !Array.isArray(catalog) || catalog.length < 2) {
+        catalog = SeedCatalog.slice();
+      } else {
+        const ids = new Set(catalog.map(x=>x.id));
+        SeedCatalog.forEach(s => { if(!ids.has(s.id)) catalog.push(s); });
       }
-      return out;
+      writeJSON(LS.CATALOG, catalog);
+      return catalog;
     }
-    const rows=[];
-    for(const raw of lines){
-      const m = raw.match(/^([A-Za-z\.\s\-]{2,28})[\s\-\—\_:.]+([0-9xX][0-9xX\s\-]{1,12})$/);
-      if(m){ rows.push({abbr:m[1].trim(), detected:m[2].trim().replace(/\s+/g,"")}); continue; }
-      const m2 = raw.match(/^([A-Za-z\.\s\-]{2,28})\s+([0-9]{2,4}\s*-\s*[0-9]{2,4}|[0-9]{3})$/);
-      if(m2){ rows.push({abbr:m2[1].trim(), detected:m2[2].trim().replace(/\s+/g,"")}); }
+    function ensureVisibility(catalog) {
+      let vis = readJSON(LS.VIS, null);
+      if (!vis || typeof vis !== 'object') vis = {};
+      catalog.forEach(it => { if(!(it.id in vis)) vis[it.id] = true; });
+      writeJSON(LS.VIS, vis);
+      return vis;
     }
-    return rows;
+    // Keep the selected date on 'today' unless the Admin drawer is open
+function maybeAdvanceSelectedDate(iso){
+  const synced = (iso || new Date().toISOString()).slice(0,10);
+  const current = (JSON.parse(localStorage.getItem('br_selected_date') || 'null')) || new Date().toISOString().slice(0,10);
+  const drawerOpen = document.getElementById('drawer').classList.contains('open');
+  if (!drawerOpen && current !== synced) {
+    localStorage.setItem('br_selected_date', JSON.stringify(synced));
   }
-  function renderOCRTable(text){
-    const box=document.getElementById("ocrTable"); box.innerHTML="";
-    const rows = text.split(/\n---\n/).flatMap(parseOCRTextBlock);
-    const table=document.createElement("table");
-    table.innerHTML=`<thead><tr><th>${i18n[lang].abbr}</th><th>${i18n[lang].map}</th><th>${i18n[lang].detected}</th><th>${i18n[lang].value}</th><th>${i18n[lang].actions}</th></tr></thead>`;
-    const tb=document.createElement("tbody");
-    rows.forEach(r=>{
-      const map=findTarget(r.abbr);
-      const tr=document.createElement("tr");
-      const mapTxt=map?`${map.section}/${map.id}/${map.draw}`:"—";
-      const inp=document.createElement("input"); inp.value=r.detected.replace(/\s*-\s*/g,"-");
-      const btn=document.createElement("button"); btn.className="btn"; btn.textContent=i18n[lang].save;
-      btn.onclick=()=>{ if(!map) return; const val=inp.value.trim(); const ok = map.section==="usa" ? /^\d{3}-\d{4}$/.test(val) : (/^\d{2}-\d{2}-\d{2}$/.test(val)||/^\d{3}$/.test(val)); if(!ok){inp.style.borderColor="var(--danger)"; setTimeout(()=>inp.style.borderColor="",800); return;} setResult(map.section,map.id,map.draw,val, getSelectedDateISO()); };
-      tr.appendChild(td(r.abbr)); tr.appendChild(td(mapTxt)); tr.appendChild(td(r.detected)); const tdv=td(""); tdv.appendChild(inp); tr.appendChild(tdv); const tdb=td(""); tdb.appendChild(btn); tr.appendChild(tdb);
-      tb.appendChild(tr);
-    });
-    table.appendChild(tb); box.appendChild(table);
-  }
-  function assignAllFromOCR(){
-    const rows=[...document.querySelectorAll("#ocrTable tbody tr")];
-    rows.forEach(tr=>{ const ab=tr.children[0].textContent; const map=findTarget(ab); if(!map) return; const val=tr.querySelector("input").value.trim(); const ok = map.section==="usa" ? /^\d{3}-\d{4}$/.test(val) : (/^\d{2}-\d{2}-\d{2}$/.test(val)||/^\d{3}$/.test(val)); if(ok) setResult(map.section,map.id,map.draw,val, getSelectedDateISO()); });
-    alert("Filas guardadas.");
-  }
+}
 
-  /*************** Catalog CRUD / Logos / Visibility (unchanged) ***************/
-  function buildCatalog(){
-    const host=document.getElementById("catalogTable"); host.innerHTML="";
-    const cat=loadCatalog();
-    const table=document.createElement("table"); table.innerHTML="<thead><tr><th>Sección</th><th>Lotería</th><th>Visible</th><th>Draw</th><th>Hora sorteo</th><th>Días (0-6)</th><th></th></tr></thead>";
-    const tb=document.createElement("tbody");
-    Object.keys(cat).forEach(section=>{
-      cat[section].forEach((l,li)=>{
-        l.draws.forEach((d,di)=>{
-          const tr=document.createElement("tr");
-          const vis=document.createElement("input"); vis.type="checkbox"; vis.checked=!!l.visible; vis.onchange=()=>{ l.visible=vis.checked; };
-          const time=document.createElement("input"); time.value=d.time; time.oninput=()=>d.time=time.value;
-          const code=document.createElement("input"); code.value=d.code; code.oninput=()=>d.code=code.value;
-          const days=document.createElement("input"); days.value=d.days.join(","); days.oninput=()=>{ d.days = days.value.split(",").map(x=>+x.trim()).filter(x=>!Number.isNaN(x)); };
-          const del=document.createElement("button"); del.className="ghost"; del.textContent="Eliminar draw"; del.onclick=()=>{ l.draws.splice(di,1); buildCatalog(); };
-          tr.appendChild(td(section)); tr.appendChild(td(l.name)); const tv=td(""); tv.appendChild(vis); tr.appendChild(tv);
-          const tcode=td(""); tcode.appendChild(code); tr.appendChild(tcode);
-          const ttime=td(""); ttime.appendChild(time); tr.appendChild(ttime);
-          const tdays=td(""); tdays.appendChild(days); tr.appendChild(tdays);
-          const tdel=td(""); tdel.appendChild(del); tr.appendChild(tdel);
-          tb.appendChild(tr);
-        });
-      });
-    });
-    table.appendChild(tb); host.appendChild(table);
-    document.getElementById("addLottery").onclick=()=>{
-      const cat=loadCatalog(); const sec=prompt("Sección (usa/rd/special)","usa"); if(!sec||!cat[sec]) return;
-      const id=prompt("ID interno (ej: ny2)")?.trim(); const name=prompt("Nombre público")?.trim(); if(!id||!name) return;
-      cat[sec].push({id,name,tz:"ET",visible:true,draws:[{code:"Midday",time:"12:00",days:[0,1,2,3,4,5,6]}]}); saveCatalog(cat); buildCatalog();
-    };
-    document.getElementById("addDraw").onclick=()=>{
-      const cat=loadCatalog(); const sec=prompt("Sección del ID de lotería (usa/rd/special)"); const id=prompt("ID de lotería a editar");
-      const lot=(cat[sec]||[]).find(x=>x.id===id); if(!lot) return alert("No encontrada.");
-      lot.draws.push({code:"New",time:"12:00",days:[0,1,2,3,4,5,6]}); saveCatalog(cat); buildCatalog();
-    };
-    document.getElementById("saveCatalog").onclick=()=>{ const cat=loadCatalog(); saveCatalog(cat); alert("Catálogo guardado."); render(); buildVisibility(); buildManual(); };
-  }
+    /**********************************************************
+     * Store adapter — reads/writes BOTH schemas safely
+     **********************************************************/
+    const Store = {
+      dateStr(){ return ($('#datePicker')?.value) || readJSON(LS.DATE, todayStr()) || todayStr(); },
 
-  function buildLogos(){
-    const grid=document.getElementById("logoGrid"); grid.innerHTML="";
-    const cat=loadCatalog(); const files=document.getElementById("logoFile");
-    let selected=null;
-    function row(section,l){
-      const div=document.createElement("div"); div.className="row"; div.style.margin="6px 0";
-      const img=document.createElement("img"); img.style.width="36px"; img.style.height="36px"; img.style.borderRadius="8px"; img.style.objectFit="cover";
-      const key=`${section}/${l.id}`; if(logos[key]) img.src=logos[key];
-      const pick=document.createElement("button"); pick.className="ghost"; pick.textContent="Seleccionar"; pick.onclick=()=>{ selected={section,id:l.id}; [...grid.querySelectorAll(".row")].forEach(r=>r.style.outline=""); div.style.outline="2px solid rgba(0,230,161,.6)"; };
-      const name=document.createElement("div"); name.textContent=`${section} — ${l.name}`; name.style.minWidth="240px";
-      div.appendChild(img); div.appendChild(name); div.appendChild(pick); return div;
-    }
-    Object.keys(cat).forEach(sec=>{ cat[sec].forEach(l=>grid.appendChild(row(sec,l))); });
-    document.getElementById("assignLogo").onclick=()=>{
-      if(!selected) return alert("Selecciona una lotería de la lista.");
-      if(!files.files?.length) return alert("Sube una imagen.");
-      const f=files.files[0]; const reader=new FileReader(); reader.onload=()=>{ logos[`${selected.section}/${selected.id}`]=reader.result; localStorage.setItem(KEY_LOGOS, JSON.stringify(logos)); render(); buildLogos(); }; reader.readAsDataURL(f);
-    };
-    document.getElementById("removeLogo").onclick=()=>{ if(!selected) return; delete logos[`${selected.section}/${selected.id}`]; localStorage.setItem(KEY_LOGOS, JSON.stringify(logos)); render(); buildLogos(); };
-  }
-
-  function buildVisibility(){
-    const host=document.getElementById("visibilityTable"); host.innerHTML="";
-    const cat=loadCatalog();
-    const table=document.createElement("table"); table.innerHTML="<thead><tr><th>Sección</th><th>Lotería</th><th>Visible</th></tr></thead>";
-    const tb=document.createElement("tbody");
-    Object.keys(cat).forEach(section=>{
-      cat[section].forEach(l=>{
-        const tr=document.createElement("tr"); const vis=document.createElement("input"); vis.type="checkbox"; vis.checked=!!l.visible; vis.onchange=()=>{ l.visible=vis.checked; const c=loadCatalog(); (c[section].find(x=>x.id===l.id)||{}).visible=vis.checked; saveCatalog(c); render(); };
-        tr.appendChild(td(section)); tr.appendChild(td(l.name)); const tv=td(""); tv.appendChild(vis); tr.appendChild(tv); tb.appendChild(tr);
-      });
-    });
-    table.appendChild(tb); host.appendChild(table);
-  }
-
-  /*************** Mapping for OCR ***************/
-  const MAP=[
-    {k:["MIDDAY","NY AM","NY MID","N Y"], map:{section:"usa",id:"ny",draw:"Midday"}},
-    {k:["STATE","NYS","NY PM","NY NIGHT","NEW YORK EVENING","STATE-"], map:{section:"usa",id:"ny",draw:"Evening"}},
-    {k:["BK-DAY","BK DAY","BK AM"], map:{section:"special",id:"ny-bk",draw:"AM"}},
-    {k:["BK-TV","BK TV","BK PM"], map:{section:"special",id:"ny-bk",draw:"PM"}},
-    {k:["NY","NY HORSES","HORSES"], map:{section:"special",id:"ny-race",draw:"R1"}},
-    {k:["NJ-DAY","NJ AM","N J AM","NJ MIDDAY","NJ A M"], map:{section:"usa",id:"nj",draw:"Midday"}},
-    {k:["NJ PM","NJ-NIGHT","N J PM"], map:{section:"usa",id:"nj",draw:"Evening"}},
-    {k:["CT AM","CONNECT AM","CONN-DAY","CT DAY","C T AM"], map:{section:"usa",id:"ct",draw:"Day"}},
-    {k:["CT PM","CONNECT PM","CONN-NIGHT","C T PM"], map:{section:"usa",id:"ct",draw:"Night"}},
-    {k:["FLORIDA AM","FL AM","FLA AM"], map:{section:"usa",id:"fl",draw:"Midday"}},
-    {k:["FLORIDA PM","FL PM","FLA PM","FL NIGHT"], map:{section:"usa",id:"fl",draw:"Evening"}},
-    {k:["GEORGIA AM","GA AM"], map:{section:"usa",id:"ga",draw:"Midday"}},
-    {k:["GEORGIA EVE","GEORGIA PM","GA PM"], map:{section:"usa",id:"ga",draw:"Evening"}},
-    {k:["GEORGIA NIGHT","GA NIGHT"], map:{section:"usa",id:"ga",draw:"Night"}},
-    {k:["PA AM","PENN AM","PA DAY"], map:{section:"usa",id:"pa",draw:"Day"}},
-    {k:["PA PM","PENN PM"], map:{section:"usa",id:"pa",draw:"Evening"}},
-    {k:["LOTEKA"], map:{section:"rd",id:"loteka",draw:"Noche"}},
-    {k:["REAL"], map:{section:"rd",id:"real",draw:"Mediodía"}},
-    {k:["GANA MAS","GANAMAS"], map:{section:"rd",id:"ganamas",draw:"Tarde"}},
-    {k:["QUINIELA PALE","QUINIELA PALE LEIDSA"], map:{section:"rd",id:"quiniela",draw:"Diario"}},
-    {k:["NACIONAL"], map:{section:"rd",id:"nacional",draw:"Noche"}},
-    {k:["3.5.7","357","3-5-7"], map:{section:"special",id:"357",draw:"Main"}}
-  ];
-  function norm(s){ return s.toUpperCase().replace(/\s+/g," ").trim(); }
-  function findTarget(label){
-    const N=norm(label);
-    for(const m of MAP){ if(m.k.some(k=>N.includes(k))) return m.map; }
-    if(/NEW JERSEY\s+AM/i.test(label)) return {section:"usa",id:"nj",draw:"Midday"};
-    if(/NEW JERSEY\s+PM/i.test(label)) return {section:"usa",id:"nj",draw:"Evening"};
-    if(/CONNECT\s+AM/i.test(label)) return {section:"usa",id:"ct",draw:"Day"};
-    if(/CONNECT\s+PM/i.test(label)) return {section:"usa",id:"ct",draw:"Night"};
-    if(/^MIDDAY$/i.test(N)) return {section:"usa",id:"ny",draw:"Midday"};
-    if(/^STATE$/i.test(N)) return {section:"usa",id:"ny",draw:"Evening"};
-    return null;
-  }
-
-  /*************** History editor ***************/
-  let currentHistKey=null;
-  function openHistory(section,id,draw,name){
-    currentHistKey = historyKey(section,id,draw);
-    document.getElementById("historyTitle").textContent = `${i18n[lang].history} — ${name} ${draw}`;
-    const list = (JSON.parse(localStorage.getItem(KEY_HISTORY)||"{}"))[currentHistKey] || [];
-    const body = document.getElementById("historyBody"); body.innerHTML="";
-    const t=document.createElement("table"); t.innerHTML="<thead><tr><th>"+i18n[lang].date+"</th><th>Resultado</th><th>Acciones</th></tr></thead>";
-    const tb=document.createElement("tbody");
-    list.slice().reverse().forEach((rec,idxRev)=>{
-      const idx = list.length-1-idxRev;
-      const tr=document.createElement("tr");
-      const dIn=document.createElement("input"); dIn.type="date"; dIn.value=rec.ts.slice(0,10);
-      const vIn=document.createElement("input"); vIn.value=rec.value;
-      const save=document.createElement("button"); save.className="btn"; save.textContent="Guardar"; save.onclick=()=>{
-        rec.ts = new Date(dIn.value+"T12:00:00").toISOString(); rec.value=vIn.value.trim();
-        const H=JSON.parse(localStorage.getItem(KEY_HISTORY)||"{}"); H[currentHistKey][idx]=rec; localStorage.setItem(KEY_HISTORY, JSON.stringify(H));
-        // If edited row is the most recent, sync current result
-        if(idx===H[currentHistKey].length-1){
-          const [section,id,draw]=currentHistKey.split("/");
-          const R=JSON.parse(localStorage.getItem(KEY_RESULTS)||"{}"); R[section]??={}; R[section][id]??={}; R[section][id][draw]=rec; localStorage.setItem(KEY_RESULTS, JSON.stringify(R)); render();
+      // Read results for selected date into the NEW shape: { 'usa/ny/Midday': '123-4567', ... }
+      readResults(date){
+        const A = readJSON(resultsKey(date), {});
+        // Merge legacy if missing
+        const legacy = readJSON(LS.LEGACY_RESULTS, {});
+        const fromLegacy = {};
+        // legacy shape: results[section][id][draw] = { value, ts }
+        for(const section of Object.keys(legacy||{})){
+          for(const id of Object.keys(legacy[section]||{})){
+            for(const draw of Object.keys(legacy[section][id]||{})){
+              const rec = legacy[section][id][draw];
+              const ds = (rec?.ts || '').slice(0,10);
+              if (ds === date && rec?.value) fromLegacy[`${section}/${id}/${draw}`] = rec.value;
+            }
+          }
         }
-        openHistory(...currentHistKey.split("/"), name);
-      };
-      const del=document.createElement("button"); del.className="ghost"; del.textContent="Eliminar"; del.onclick=()=>{
-        const H=JSON.parse(localStorage.getItem(KEY_HISTORY)||"{}"); H[currentHistKey].splice(idx,1); localStorage.setItem(KEY_HISTORY, JSON.stringify(H));
-        openHistory(...currentHistKey.split("/"), name);
-      };
-      const use=document.createElement("button"); use.className="ghost"; use.textContent="Usar como actual"; use.onclick=()=>{
-        const [section,id,draw]=currentHistKey.split("/"); const R=JSON.parse(localStorage.getItem(KEY_RESULTS)||"{}"); R[section]??={}; R[section][id]??={}; R[section][id][draw]=rec; localStorage.setItem(KEY_RESULTS, JSON.stringify(R)); render();
-      };
-      const tdDate=td(""); tdDate.appendChild(dIn); const tdVal=td(""); tdVal.appendChild(vIn);
-      const tdAct=td(""); tdAct.appendChild(save); tdAct.appendChild(document.createTextNode(" ")); tdAct.appendChild(del); tdAct.appendChild(document.createTextNode(" ")); tdAct.appendChild(use);
-      tr.appendChild(tdDate); tr.appendChild(tdVal); tr.appendChild(tdAct); tb.appendChild(tr);
-    });
-    t.appendChild(tb); body.appendChild(t);
-    document.getElementById("historyModal").classList.add("open");
-    // Add-new prefill
-    document.getElementById("histDate").value = (localStorage.getItem("br_date") || new Date().toISOString().slice(0,10));
-    document.getElementById("histValue").value = "";
-    document.getElementById("histAdd").onclick=()=>{
-      const d=document.getElementById("histDate").value; const v=document.getElementById("histValue").value.trim(); if(!d||!v) return;
-      const H=JSON.parse(localStorage.getItem(KEY_HISTORY)||"{}"); H[currentHistKey]=H[currentHistKey]||[]; const rec={ts:new Date(d+"T12:00:00").toISOString(), value:v}; H[currentHistKey].push(rec); localStorage.setItem(KEY_HISTORY, JSON.stringify(H));
-      // set also as current
-      const [section,id,draw]=currentHistKey.split("/"); const R=JSON.parse(localStorage.getItem(KEY_RESULTS)||"{}"); R[section]??={}; R[section][id]??={}; R[section][id][draw]=rec; localStorage.setItem(KEY_RESULTS, JSON.stringify(R)); render();
-      openHistory(section,id,draw,name);
+        return Object.assign({}, fromLegacy, A); // A overwrites legacy
+      },
+
+      // Write to both schemas
+      setById(id, value, iso){
+        const date = (iso||new Date().toISOString()).slice(0,10);
+        // new
+        const obj = readJSON(resultsKey(date), {});
+        obj[id] = value;
+        writeJSON(resultsKey(date), obj);
+        // legacy
+        const [section, state, draw] = id.split('/');
+        if(section && state && draw){
+          const legacy = readJSON(LS.LEGACY_RESULTS, {});
+          legacy[section] = legacy[section] || {};
+          legacy[section][state] = legacy[section][state] || {};
+          legacy[section][state][draw] = { value, ts: iso || new Date().toISOString() };
+          writeJSON(LS.LEGACY_RESULTS, legacy);
+          // Append to legacy history
+          const HK = 'br_history_v1';
+          const hist = readJSON(HK, {});
+          const key = `${section}/${state}/${draw}`;
+          hist[key] = hist[key] || [];
+          const last = hist[key][hist[key].length-1];
+          if(!last || last.value !== value){ hist[key].push({ value, ts: iso||new Date().toISOString() }); if(hist[key].length>100) hist[key].shift(); }
+          writeJSON(HK, hist);
+        }
+      }
     };
-  }
-  document.getElementById("closeHistory").onclick=()=>document.getElementById("historyModal").classList.remove("open");
 
-  /*************** Public tiles (centered numbers, bigger logo, name below) ***************/
-  function formatDate(ts){ if(!ts) return "—"; const d=new Date(ts); const yyyy=d.getFullYear(), mm=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0"); return `${yyyy}-${mm}-${dd}`; }
-  function isOpen(d){ const now=new Date(); const [cH,cM]=minus20(d.time).split(":").map(Number); const nowM=now.getHours()*60+now.getMinutes(); const closeM=cH*60+cM; const today=now.getDay(); return nowM<closeM && d.days.includes(today); }
-  function renderSection(key,title){
-    const cat=loadCatalog(); const sec=document.createElement("div"); sec.className="section";
-    sec.innerHTML=`<h2>${title}</h2><div class="grid"></div>`; const grid=sec.querySelector(".grid");
-    const q=(document.getElementById("search")?.value||"").toLowerCase().trim();
-    const resAll=JSON.parse(localStorage.getItem(KEY_RESULTS)||"{}");
-    cat[key].forEach(l=>{
-      if(!l.visible) return;
-      if(q && !(l.name.toLowerCase().includes(q)||l.id.includes(q))) return;
-      l.draws.forEach(d=>{
-        const today=new Date().getDay(); if(!d.days.includes(today)) return;
-        const rec=resAll[key]?.[l.id]?.[d.code] || null;
-        const r= rec?.value || "—"; const ts=rec?.ts || null;
-        const card=document.createElement("div"); card.className="tile";
-        const logo=logos[`${key}/${l.id}`];
-        const dateStr = formatDate(ts);
-        card.innerHTML=`
-          <div class="top"><div class="emblem">${logo? `<img src="${logo}" alt="">` : (l.id.slice(0,2).toUpperCase())}</div></div>
-          <div class="nums">${r}</div>
-          <div class="nameUnder">${l.name} <span class="pill">${d.code}</span></div>
-          <div class="date">${i18n[lang].date}: ${dateStr}</div>
-          <div class="meta">
-            <div>${i18n[lang].draw}: ${d.time}</div>
-            <div>${i18n[lang].close}: ${minus20(d.time)}</div>
-            <div class="status ${isOpen(d)?'':'closed'}">${isOpen(d)?i18n[lang].open:i18n[lang].closed}</div>
-            <button class="history-btn" data-k="${key}/${l.id}/${d.code}" title="${i18n[lang].viewHistory}">⟲ ${i18n[lang].viewHistory}</button>
+    /**********************************************************
+     * Public board render (alternate UI)
+     **********************************************************/
+    function buildPublicBoard(){
+      const catalog = ensureCatalog();
+      const vis = ensureVisibility(catalog);
+      const date = Store.dateStr();
+      writeJSON(LS.DATE, date);
+      const results = Store.readResults(date);
+
+      $('#grid-usa').innerHTML = '';
+      $('#grid-rd').innerHTML = '';
+      $('#grid-special').innerHTML = '';
+
+      for(const item of catalog){
+        if(!vis[item.id]) continue;
+        const where = item.section === 'usa' ? '#grid-usa' : (item.section === 'rd' ? '#grid-rd' : '#grid-special');
+        const res = results[item.id] || '';
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `
+          <div class="card-header">
+            <div class="badge">${(item.lottery[0]||'?')+(item.lottery.split(' ')[1]?.[0]||'')}</div>
+            <div><div class="title">${item.lottery}</div><div class="subtitle">${item.draw}</div></div>
+            <div class="right status">ET</div>
+          </div>
+          <div class="card-body">
+            <div class="result-big" data-res-for="${item.id}">${res?res:'—'}</div>
+            <div class="meta"><span>Sorteo: ${item.drawTime}</span><span>Cierre: ${item.closeTime}</span></div>
+          </div>
+          <div class="card-footer">
+            <span class="chip">ID: ${item.id}</span>
+            <span class="link" data-hist="${item.id}">Ver historial</span>
           </div>`;
-        card.querySelector(".history-btn").onclick=()=>openHistory(key,l.id,d.code,l.name);
-        grid.appendChild(card);
-      });
-    });
-    return sec;
-  }
-  function render(){
-    const content=document.getElementById("content"); content.innerHTML="";
-    content.appendChild(renderSection("usa", i18n[lang].usa));
-    content.appendChild(renderSection("rd", i18n[lang].rd));
-    content.appendChild(renderSection("special", i18n[lang].special));
-  }
-  function td(t){ const d=document.createElement("td"); d.textContent=t; return d; }
-  
-  // === NY Open Data → Beast Reader bridge ===
-async function fetchNYOpenData(){
-  const r = await fetch('http://localhost:3000/api/ny/latest', {cache:'no-store'});
-  if(!r.ok) throw new Error(`NY bridge failed ${r.status}`);
-  return await r.json(); // { dateISO, midday, evening }
-}
-
-// Safer writer: logs when nothing changed so you know the button did work
-async function syncNY() {
-  try {
-    const before = JSON.parse(localStorage.getItem('br_results_v1')||'{}')?.usa?.ny || {};
-    const ny = await fetchNYOpenData();
-    let wrote=false;
-    if (ny.midday)  { setResult('usa','ny','Midday',  ny.midday,  ny.dateISO);  wrote=true; }
-    if (ny.evening) { setResult('usa','ny','Evening', ny.evening, ny.dateISO);  wrote=true; }
-    if (!wrote) console.info('NY sync: no values found from API');
-    else {
-      const after = JSON.parse(localStorage.getItem('br_results_v1')||'{}')?.usa?.ny || {};
-      console.info('NY updated:',
-        { midday: {old: before?.Midday?.value,  new: after?.Midday?.value},
-          evening:{old: before?.Evening?.value, new: after?.Evening?.value},
-          date: ny.dateISO });
+        $(where).appendChild(el);
+        $('[data-hist]', el).onclick = () => openHistory(item.id);
+      }
     }
-  } catch (err) {
-    console.warn('NY sync failed:', err);
-  }
+
+    // Minimal history view (uses legacy history storage so it works with existing data)
+    function openHistory(id){
+      const [section,state,draw] = id.split('/');
+      const key = `${section}/${state}/${draw}`;
+      const hist = readJSON(LS.LEGACY_HISTORY, {});
+      const arr = hist[key] || [];
+      const msg = arr.slice(-12).map(x=>`${x.ts?.slice(0,16).replace('T',' ')} — ${x.value}`).join('\n') || 'Sin historial';
+      alert(`${id}\n\n${msg}`);
+    }
+
+    /**********************************************************
+     * Admin: drawer wiring (theme/lang/date) + tables
+     **********************************************************/
+    const drawer = $('#drawer');
+    $('#adminBtn').addEventListener('click', () => {
+      if (localStorage.getItem(LS.PIN_OK) !== 'true') {
+        const pin = prompt('Introduce PIN de administrador:');
+        if (pin !== '1983') return alert('PIN incorrecto');
+        localStorage.setItem(LS.PIN_OK, 'true');
+      }
+      drawer.classList.add('open');
+      syncAdminUI();
+    });
+    $('#closeDrawer').onclick = () => drawer.classList.remove('open');
+    $$('.tab').forEach(t => t.addEventListener('click', () => switchTab(t)));
+
+    function switchTab(el){
+      $$('.tab').forEach(x => x.classList.remove('active')); el.classList.add('active');
+      const id = el.dataset.tab;
+      $('#tab-results').classList.toggle('hidden', id!=='results');
+      $('#tab-ocr').classList.toggle('hidden', id!=='ocr');
+      $('#tab-catalog').classList.toggle('hidden', id!=='catalog');
+      $('#tab-logos').classList.toggle('hidden', id!=='logos');
+      $('#tab-visibility').classList.toggle('hidden', id!=='visibility');
+    }
+
+    function syncAdminUI(){
+      const theme = localStorage.getItem(LS.THEME) || 'dark';
+      document.body.dataset.theme = theme;
+      $('#themeToggle').checked = theme === 'light';
+      $('#themeToggle').onchange = () => { document.body.dataset.theme = $('#themeToggle').checked ? 'light' : 'dark'; localStorage.setItem(LS.THEME, document.body.dataset.theme); };
+
+      const d = readJSON(LS.DATE, todayStr()) || todayStr();
+      $('#datePicker').value = d;
+      $('#datePicker').onchange = () => { writeJSON(LS.DATE, $('#datePicker').value); buildPublicBoard(); buildResultsTable(); };
+
+      buildResultsTable(); buildOcrPreviewTable(); buildCatalogTable(); buildVisibilityTable(); buildLogosList();
+    }
+
+    function buildResultsTable(){
+      const catalog = ensureCatalog();
+      const vis = ensureVisibility(catalog);
+      const date = Store.dateStr();
+      const res = Store.readResults(date);
+
+      let html = '';
+      const groups = { usa:[], rd:[], special:[] };
+      catalog.forEach(it => { if (vis[it.id]) groups[it.section].push(it); });
+      function renderGroup(title, arr){ if(!arr.length) return ''; let rows = arr.map(it=>`<tr data-id="${it.id}"><td>${it.section.toUpperCase()}</td><td>${it.lottery}</td><td>${it.draw}</td><td>${it.drawTime}</td><td>${it.closeTime}</td><td><input type="text" value="${res[it.id]||''}" data-res /></td><td><button class="btn saveOne">Save</button></td></tr>`).join(''); return `<h3 class="mb6">${title}</h3><table class="table"><thead><tr><th>Sección</th><th>Lotería</th><th>Draw</th><th>Hora sorteo</th><th>Hora cierre</th><th>Resultado</th><th></th></tr></thead><tbody>${rows}</tbody></table>`; }
+      html += renderGroup('USA Lotteries', groups.usa);
+      html += renderGroup('Santo Domingo Lotteries', groups.rd);
+      html += renderGroup('Special Lotteries', groups.special);
+      $('#resultsTableContainer').innerHTML = html;
+
+      $$('.saveOne', $('#resultsTableContainer')).forEach(btn => {
+        btn.addEventListener('click', (ev) => { const tr = ev.target.closest('tr'); const id = tr.dataset.id; const input = $('[data-res]', tr); Store.setById(id, input.value.trim(), new Date().toISOString()); buildPublicBoard(); });
+      });
+
+      $('#resetResultsBtn').onclick = () => { if (!confirm('¿Borrar todos los resultados del día seleccionado?')) return; writeJSON(resultsKey(Store.dateStr()), {}); buildResultsTable(); buildPublicBoard(); };
+    }
+
+    /**********************************************************
+     * OCR (preview only — same UI, keeps your map & extractor hooks)
+     **********************************************************/
+    const OCR_MAP = [
+      { pat:/\b(mid(?:day)?|am)\b/i, target:'usa/ny/Midday' },
+      { pat:/\b(eve|evening|pm)\b/i, target:'usa/ny/Evening' }
+      // (extend with your full map)
+    ];
+    function extractResultNumbers(str){ const s=str.replace(/[^\dx\- ]+/gi,' ').trim(); const m1=s.match(/(\d{3})\D+(\d{4})/); if(m1) return `${m1[1]}-${m1[2]}`; const m2=s.match(/(\d{2})\D+(\d{2})\D+(\d{2})/); if(m2) return `${m2[1]}-${m2[2]}-${m2[3]}`; const m3=s.match(/\b(\d{3,4})\b/); if(m3) return m3[1]; const d=s.replace(/\D+/g,''); return d||''; }
+    function previewTextToTable(text){ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean); return lines.map(line=>{ let targetId=''; for(const r of OCR_MAP){ if(r.pat.test(line)){ targetId=r.target; break; } } return { source:line, targetId, value:extractResultNumbers(line) }; }); }
+    function buildOcrPreviewTable(){ const date=Store.dateStr(); const snap=readJSON(ocrKey(date), []); let html=`<table class="table"><thead><tr><th>Abbrev.</th><th>Map</th><th>Detected</th><th>Value</th><th>Actions</th></tr></thead><tbody>`; html+=snap.map((r,i)=>`<tr data-i="${i}"><td>${r.source}</td><td>${r.targetId||'—'}</td><td>${extractResultNumbers(r.source)}</td><td><input type="text" value="${r.value||''}" data-val /></td><td><button class="btn saveRow">Save</button></td></tr>`).join(''); html+='</tbody></table>'; $('#ocrPreviewContainer').innerHTML=html; $$('.saveRow', $('#ocrPreviewContainer')).forEach(btn=>{ btn.onclick=(e)=>{ const tr=e.target.closest('tr'); const i=Number(tr.dataset.i); const rows=readJSON(ocrKey(Store.dateStr()), []); const row=rows[i]; if(!row?.targetId){ alert('Falta Map/ID'); return; } const v=$('[data-val]', tr).value.trim(); Store.setById(row.targetId, v, new Date().toISOString()); buildPublicBoard(); buildResultsTable(); }; }); }
+
+    // Minimal catalog & visibility placeholders (kept from alt version)
+    function buildCatalogTable(){ const c=ensureCatalog(); let html='<table class="table"><thead><tr><th>ID</th><th>Lotería</th><th>Draw</th><th>Visible</th></tr></thead><tbody>'; for(const it of c){ html += `<tr><td>${it.id}</td><td>${it.lottery}</td><td>${it.draw}</td><td>${it.visible?'✔':''}</td></tr>`; } html+='</tbody></table>'; $('#catalogTableContainer').innerHTML=html; }
+    function buildVisibilityTable(){ const c=ensureCatalog(); const vis=ensureVisibility(c); let html='<table class="table"><thead><tr><th>ID</th><th>Visible</th></tr></thead><tbody>'; for(const it of c){ html+=`<tr><td>${it.id}</td><td><input type="checkbox" ${vis[it.id]?'checked':''} data-id="${it.id}"/></td></tr>`; } html+='</tbody></table>'; $('#visibilityTableContainer').innerHTML=html; $$('#visibilityTableContainer input[type="checkbox"]').forEach(cb=>cb.onchange=(e)=>{ const id=e.target.dataset.id; const v=ensureVisibility(c); v[id]=e.target.checked; writeJSON(LS.VIS, v); buildPublicBoard(); }); }
+    function buildLogosList(){ const logos = readJSON(LS.LOGOS, {}); let html=''; for(const [k,v] of Object.entries(logos)){ html += `<div class="row mb6"><div class="badge" style="overflow:hidden"><img src="${v}" style="width:34px;height:34px;border-radius:10px"/></div><div>${k}</div></div>`; } $('#logosList').innerHTML = html || '<em>Sin logos subidos.</em>'; }
+
+    /**********************************************************
+     * Auto Scroll (keep working with #autoScrollHeader)
+     **********************************************************/
+    let scrollTimer=null, scrollDown=true; function toggleAutoScroll(){ const b=$('#autoScrollHeader'); if(scrollTimer){ clearInterval(scrollTimer); scrollTimer=null; if(b) b.textContent='⬇ Auto Scroll'; return; } if(b) b.textContent='■ Detener'; const area=document.scrollingElement; scrollTimer=setInterval(()=>{ const step=0.35; area.scrollBy(0, scrollDown?step:-step); if(area.scrollTop+window.innerHeight+2>=area.scrollHeight) scrollDown=false; if(area.scrollTop<=1) scrollDown=true; }, 10);} $('#autoScrollHeader').onclick=toggleAutoScroll;
+
+    /**********************************************************
+     * Backend fetch (server/ index.js) — NY now, more later
+     **********************************************************/
+    async function fetchNY(){
+      const r = await fetch('http://localhost:3000/api/ny/latest', { cache: 'no-store' });
+      if(!r.ok) throw new Error('NY bridge failed '+r.status);
+      return await r.json(); // { dateISO, midday, evening }
+    }
+    async function syncNY(){
+      try{
+        const ny = await fetchNY();
+        if(ny.midday)  Store.setById('usa/ny/Midday',  ny.midday,  ny.dateISO);
+        if(ny.evening) Store.setById('usa/ny/Evening', ny.evening, ny.dateISO);
+        maybeAdvanceSelectedDate(ny.dateISO);
+        buildPublicBoard();
+        console.info('NY updated', ny);
+      }catch(err){ console.warn('NY sync failed', err); }
+    }
+
+ async function fetchNJ(){
+  const r = await fetch('http://localhost:3000/api/nj/latest', { cache: 'no-store' });
+  if(!r.ok) throw new Error('NJ bridge failed '+r.status);
+  return await r.json();
+}
+async function syncNJ(){
+  try{
+    const nj = await fetchNJ();
+    if(nj.midday)  Store.setById('usa/nj/Midday',  nj.midday,  nj.dateISO);
+    if(nj.evening) Store.setById('usa/nj/Evening', nj.evening, nj.dateISO);
+    maybeAdvanceSelectedDate(nj.dateISO);
+    console.info('NJ updated', nj);
+  }catch(e){ console.warn('NJ sync failed', e); }
 }
 
+// === Connecticut (map midday->Day, evening->Night) ===
+async function fetchCT(){
+  const r = await fetch('http://localhost:3000/api/ct/latest', { cache: 'no-store' });
+  if(!r.ok) throw new Error('CT bridge failed '+r.status);
+  return await r.json();
+}
+async function syncCT(){
+  try{
+    const ct = await fetchCT();
+    if(ct.midday)  Store.setById('usa/ct/Day',   ct.midday,  ct.dateISO);
+    if(ct.evening) Store.setById('usa/ct/Night', ct.evening, ct.dateISO);
+    maybeAdvanceSelectedDate(ct.dateISO);
+    console.info('CT updated', ct);
+  }catch(e){ console.warn('CT sync failed', e); }
+}
+
+// === Florida ===
+async function fetchFL(){
+  const r = await fetch('http://localhost:3000/api/fl/latest', { cache: 'no-store' });
+  if(!r.ok) throw new Error('FL bridge failed '+r.status);
+  return await r.json();
+}
+async function syncFL(){
+  try{
+    const fl = await fetchFL();
+    if(fl.midday)  Store.setById('usa/fl/Midday',  fl.midday,  fl.dateISO);
+    if(fl.evening) Store.setById('usa/fl/Evening', fl.evening, fl.dateISO);
+    maybeAdvanceSelectedDate(fl.dateISO);
+    console.info('FL updated', fl);
+  }catch(e){ console.warn('FL sync failed', e); }
+}
+
+
+    // Later: add sync functions for NJ/CT/FL... and call them inside syncAll()
   async function syncAll(){
-  // aquí luego agregamos otros estados: await Promise.all([syncNY(), syncNJ(), ...])
-  await syncNY();
+  const tasks = [syncNY(), syncNJ(), syncCT(), syncFL()];
+  await Promise.allSettled(tasks);
+  // Repaint once after all writes land
+  buildPublicBoard();
 }
 
-// Ventanas “rápidas” alrededor de los horarios de NY configurados en tu catálogo
-function isBurstNow(){
-  const ny = (loadCatalog().usa.find(l=>l.id==='ny')||{draws:[]}).draws; // usa tus horas 14:30 y 22:30
-  const now = new Date();
-  return ny.some(d=>{
-    const [h,m] = d.time.split(':').map(Number);
-    const start = new Date(now); start.setHours(h, (m-15), 0, 0); // 15 min antes
-    const end   = new Date(now); end.setHours(h, (m+25), 0, 0);   // 25 min después
-    return d.days.includes(now.getDay()) && now >= start && now <= end;
-  });
-}
+    /**********************************************************
+     * Live refresh strategy
+     **********************************************************/
+    function isBurstNow(){
+      // around NY times from catalog
+      const catalog = ensureCatalog();
+      const ny = catalog.filter(x=>x.id.startsWith('usa/ny/'));
+      const now = new Date();
+      return ny.some(d=>{ const [h,m]=d.drawTime.split(':').map(Number); const start=new Date(now); start.setHours(h, m-15, 0, 0); const end=new Date(now); end.setHours(h, m+25, 0, 0); return d.days.includes(now.getDay()) && now>=start && now<=end; });
+    }
+    let liveTimer=null; async function liveTick(){ try{ await syncAll(); }catch{} const next = isBurstNow()? 20*1000 : 10*60*1000; liveTimer = setTimeout(liveTick, next); }
 
-let liveTimer = null;
-async function liveTick(){
-  try { await syncAll(); } catch(_) {}
-  const next = isBurstNow() ? 20 * 1000 : 10 * 60 * 1000; // cada 20s cerca del sorteo; cada 10 min fuera
-  liveTimer = setTimeout(liveTick, next);
-}
+    // Sync button
+    $('#syncNowBtn').onclick = async ()=>{ const t= $('#syncNowBtn'); const old=t.textContent; t.textContent='…'; t.disabled=true; try{ await syncAll(); } finally { t.textContent=old; t.disabled=false; } };
 
-// Arrancar el ciclo
-liveTick();
+    /**********************************************************
+     * Boot
+     **********************************************************/
+    (function init(){
+  const theme = localStorage.getItem(LS.THEME) || 'dark';
+  document.body.dataset.theme = theme;
 
-// Refrescar al volver a la pestaña/ventana
-['focus','visibilitychange'].forEach(ev=>{
-  window.addEventListener(ev, ()=>{ if(!document.hidden) syncAll(); });
-});
+  // NEW: if the saved date is behind, bump to today
+  const today = todayStr();
+  const saved = (JSON.parse(localStorage.getItem(LS.DATE) || 'null')) || today;
+  if (saved < today) localStorage.setItem(LS.DATE, JSON.stringify(today));
+  if (!localStorage.getItem(LS.DATE)) localStorage.setItem(LS.DATE, JSON.stringify(today));
 
-// Botón “Sync” en el header
-(function ensureSyncButton(){
-  const container = document.querySelector('.header-actions');
-  if(!container || document.getElementById('syncNowBtn')) return;
-  const b = document.createElement('button');
-  b.className = 'ghost'; b.id='syncNowBtn'; b.textContent='⟳ Sync';
-  b.onclick = async ()=>{
-    const t=b.textContent; b.textContent='…'; b.disabled=true;
-    try { await syncAll(); } finally { b.textContent=t; b.disabled=false; }
-  };
-  // insertarlo antes del botón Auto Scroll
-  const hook = document.getElementById('autoScrollHeader');
-  container.insertBefore(b, hook);
+  buildPublicBoard();
+  liveTick();
 })();
-
-  applyLang(); render();
   </script>
 </body>
 </html>
