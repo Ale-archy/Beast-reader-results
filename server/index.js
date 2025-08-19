@@ -1,117 +1,127 @@
 import express from 'express';
 import cors from 'cors';
-import pino from 'pino';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import dayjs from 'dayjs';
-import { chromium } from 'playwright';
 
-const log = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
 app.use(cors());
 
-let cache = { payload:null, ts:0 }; // 60s TTL
-const ttlMs = 60 * 1000;
+// --- robust digit grabber (handles different page structures) ---
+async function fetchDigits(url, howMany) {
+  const html = (await axios.get(url, { timeout: 15000 })).data;
+  const $ = cheerio.load(html);
 
-// ---- Source A: LotteryUSA (fast, static HTML) ----
-async function fromLotteryUSA(){
-  // Midday Numbers: 3 digits
-  const midHTML = (await axios.get('https://www.lotteryusa.com/new-york/midday-numbers/', {timeout: 15000})).data;
-  const $m = cheerio.load(midHTML);
-  const mid3 = $m('h2:contains("Latest numbers")').first()
-                .nextAll().find('li').slice(0,3).map((i,el)=>$m(el).text().trim()).get().join('');
-  // Midday Win4: 4 digits
-  const w4mHTML = (await axios.get('https://www.lotteryusa.com/new-york/midday-win-4/', {timeout: 15000})).data;
-  const $w4m = cheerio.load(w4mHTML);
-  const mid4 = $w4m('h2:contains("Latest numbers")').first()
-                 .nextAll().find('li').slice(0,4).map((i,el)=>$w4m(el).text().trim()).get().join('');
+  // Try 1: the “Latest numbers” list block (common across LotteryUSA)
+  let digits = $('h2:contains("Latest numbers")')
+    .first()
+    .nextAll()
+    .find('li')
+    .slice(0, howMany)
+    .map((i, el) => $(el).text().trim())
+    .get();
 
-  // Evening pages
-  const eveHTML = (await axios.get('https://www.lotteryusa.com/new-york/numbers/', {timeout: 15000})).data;
-  const $e = cheerio.load(eveHTML);
-  const eve3 = $e('h2:contains("Latest numbers")').first()
-               .nextAll().find('li').slice(0,3).map((i,el)=>$e(el).text().trim()).get().join('');
-  const w4eHTML = (await axios.get('https://www.lotteryusa.com/new-york/win-4/', {timeout: 15000})).data;
-  const $w4e = cheerio.load(w4eHTML);
-  const eve4 = $w4e('h2:contains("Latest numbers")').first()
-               .nextAll().find('li').slice(0,4).map((i,el)=>$w4e(el).text().trim()).get().join('');
-
-  // Date: prefer today ET at noon for stability
-  const dateISO = dayjs().hour(12).minute(0).second(0).millisecond(0).toDate().toISOString();
-  const out = { dateISO, midday: `${mid3}-${mid4}`, evening: `${eve3}-${eve4}` };
-  if(!/^\d{3}-\d{4}$/.test(out.midday)) out.midday = null;
-  if(!/^\d{3}-\d{4}$/.test(out.evening)) out.evening = null;
-  return out;
-}
-
-// ---- Source B: NY official site (JS; use Playwright) ----
-async function fromNYOfficial(){
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ javaScriptEnabled:true });
-  // Numbers page
-  await page.goto('https://nylottery.ny.gov/draw-game/?game=numbers', { waitUntil: 'domcontentloaded', timeout: 30000 });
-  // Try to sniff the JSON call (site is an SPA)
-  const apiResp = await page.waitForResponse(r =>
-    r.url().includes('nylottery.ny.gov') &&
-    /application\/json/i.test(r.headers()['content-type'] || ''), { timeout: 15000 }).catch(()=>null);
-
-  let mid3=null, eve3=null;
-  try {
-    if (apiResp) {
-      const data = await apiResp.json();
-      // adapt these two lines after you inspect the structure:
-      mid3 = String((data.midday?.winningNumbers||[]).join('')||'');
-      eve3 = String((data.evening?.winningNumbers||[]).join('')||'');
-    }
-  } catch {}
-  // Win4
-  await page.goto('https://nylottery.ny.gov/draw-game/?game=win4', { waitUntil: 'domcontentloaded', timeout: 30000 });
-  const apiResp2 = await page.waitForResponse(r =>
-    r.url().includes('nylottery.ny.gov') &&
-    /application\/json/i.test(r.headers()['content-type'] || ''), { timeout: 15000 }).catch(()=>null);
-
-  let mid4=null, eve4=null;
-  try {
-    if (apiResp2) {
-      const data = await apiResp2.json();
-      mid4 = String((data.midday?.winningNumbers||[]).join('')||'');
-      eve4 = String((data.evening?.winningNumbers||[]).join('')||'');
-    }
-  } catch {}
-  await browser.close();
-
-  const out = {
-    dateISO: new Date().toISOString(),
-    midday:  mid3 && mid4 ? `${mid3}-${mid4}` : null,
-    evening: eve3 && eve4 ? `${eve3}-${eve4}` : null
-  };
-  return out;
-}
-
-// ---- Aggregator with fallback + short cache ----
-async function getNY(){
-  const now = Date.now();
-  if (cache.payload && now - cache.ts < ttlMs) return cache.payload;
-
-  let a=null, b=null;
-  try { a = await fromLotteryUSA(); } catch(e){ log.warn({msg:'lotteryusa failed', e:e.message}); }
-  // Use official only if something missing (or near draw time you can prefer it)
-  if(!a?.midday || !a?.evening){
-    try { b = await fromNYOfficial(); } catch(e){ log.warn({msg:'nyofficial failed', e:e.message}); }
+  // Try 2: generic “winning number” spans (used on some pages)
+  if (digits.length !== howMany) {
+    digits = $('[class*="winning"], [data-automation-id*="winning"]')
+      .filter((i, el) => /^\d$/.test($(el).text().trim()))
+      .slice(0, howMany)
+      .map((i, el) => $(el).text().trim())
+      .get();
   }
-  const best = {
-    dateISO: (a?.dateISO || b?.dateISO || new Date().toISOString()),
-    midday:  a?.midday  || b?.midday  || null,
-    evening: a?.evening || b?.evening || null
-  };
-  cache = { payload: best, ts: now };
-  return best;
+
+  // Try 3: fallback — first N single digits found near the top
+  if (digits.length !== howMany) {
+    const text = $('main').text().replace(/\s+/g, ' ');
+    const rx = new RegExp(
+      `(?:\\D|^)(\\d)(?:\\D+)(\\d)(?:\\D+)(\\d)` + (howMany === 4 ? '(?:\\D+)(\\d)' : '')
+    );
+    const m = text.match(rx);
+    if (m) digits = m.slice(1, howMany + 1);
+  }
+
+  const joined = digits.join('');
+  return /^\d+$/.test(joined) && joined.length === howMany ? joined : null;
 }
 
-app.get('/api/ny/latest', async (req,res)=>{
-  try { res.json(await getNY()); }
-  catch(e){ res.status(502).json({error:'upstream failed', detail:e.message}); }
+async function tryPaths(base, paths, n) {
+  for (const p of paths) {
+    try {
+      const v = await fetchDigits(`${base}${p}/`, n);
+      if (v) return v;
+    } catch { /* keep trying */ }
+  }
+  return null;
+}
+
+// --- state configs (LotteryUSA slugs + path candidates) ---
+const CFG = {
+  ny: {
+    slug: 'new-york',
+    p3: { mid: ['midday-numbers'],            eve: ['numbers'] },
+    p4: { mid: ['midday-win-4'],              eve: ['win-4']   }
+  },
+  nj: {
+    slug: 'new-jersey',
+    p3: { mid: ['midday-pick-3', 'midday-numbers'], eve: ['pick-3', 'numbers'] },
+    p4: { mid: ['midday-pick-4', 'midday-win-4'],   eve: ['pick-4', 'win-4']   }
+  },
+  ct: {
+    slug: 'connecticut', // CT uses Play 3/Play 4 and Day/Night
+    p3: { mid: ['play-3-day', 'midday-play-3', 'day-numbers', 'midday-numbers'],
+           eve: ['play-3-night', 'evening-play-3', 'night-numbers', 'evening-numbers'] },
+    p4: { mid: ['play-4-day', 'midday-play-4', 'day-win-4', 'midday-win-4'],
+           eve: ['play-4-night', 'evening-play-4', 'night-win-4', 'evening-win-4'] }
+  },
+  fl: {
+    slug: 'florida',
+    p3: { mid: ['midday-pick-3', 'midday-numbers'], eve: ['pick-3', 'numbers'] },
+    p4: { mid: ['midday-pick-4', 'midday-win-4'],   eve: ['pick-4', 'win-4']   }
+  }
+};
+
+function makeGetter(cfg) {
+  return async () => {
+    const base = `https://www.lotteryusa.com/${cfg.slug}/`;
+    const [mid3, mid4, eve3, eve4] = await Promise.all([
+      tryPaths(base, cfg.p3.mid, 3),
+      tryPaths(base, cfg.p4.mid, 4),
+      tryPaths(base, cfg.p3.eve, 3),
+      tryPaths(base, cfg.p4.eve, 4)
+    ]);
+    const dateISO = dayjs().hour(12).minute(0).second(0).millisecond(0).toDate().toISOString();
+    return {
+      dateISO,
+      midday:  mid3 && mid4 ? `${mid3}-${mid4}` : null,
+      evening: eve3 && eve4 ? `${eve3}-${eve4}` : null
+    };
+  };
+}
+
+const getters = {
+  ny: makeGetter(CFG.ny),
+  nj: makeGetter(CFG.nj),
+  ct: makeGetter(CFG.ct),
+  fl: makeGetter(CFG.fl)
+};
+
+// --- routes ---
+app.get('/api/:state/latest', async (req, res) => {
+  const state = String(req.params.state || '').toLowerCase();
+  const getter = getters[state];
+  if (!getter) return res.status(404).json({ error: 'unsupported_state' });
+  try {
+    const out = await getter();
+    res.json(out);
+  } catch (e) {
+    res.status(502).json({ error: 'scrape_failed', detail: String(e?.message || e) });
+  }
+});
+
+// Backwards-compat alias for existing frontend
+app.get('/api/ny/latest', async (_req, res) => {
+  try { res.json(await getters.ny()); } catch (e) { res.status(502).json({ error: 'scrape_failed', detail: String(e?.message || e) }); }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=> log.info({msg:'lotto-bridge up', port:PORT}));
+app.listen(PORT, () => console.log('Bridge up on http://localhost:' + PORT));
